@@ -1,5 +1,16 @@
 import type { Metadata, Viewport } from 'next';
+import React from 'react';
 import './globals.css';
+
+// React 19 / R3F runtime polyfill
+if (typeof window !== 'undefined') {
+  const internals =
+    (React as any).__CLIENT_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED ||
+    (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+  if (internals && !internals.ReactCurrentBatchConfig) {
+    internals.ReactCurrentBatchConfig = { transition: null };
+  }
+}
 
 export const metadata: Metadata = {
   title: 'OBSCURA // THE BLEED',
