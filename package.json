@@ -19,6 +19,12 @@
     "tailwind-merge": "^2.5.4",
     "three": "^0.170.0"
   },
+  "overrides": {
+    "@react-three/fiber": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    }
+  },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^19",
