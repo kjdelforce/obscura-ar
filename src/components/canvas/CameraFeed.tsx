@@ -1,8 +1,8 @@
 'use client';
-import React from 'react';
+import type { RefCallback } from 'react';
 
 interface CameraFeedProps {
-  videoRef: React.RefObject<HTMLVideoElement | null>;
+  videoRef: RefCallback<HTMLVideoElement>;
 }
 
 export function CameraFeed({ videoRef }: CameraFeedProps) {
