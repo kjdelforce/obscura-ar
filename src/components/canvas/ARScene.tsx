@@ -262,16 +262,16 @@ export function ARScene({
       const encounter = director.update(delta, currentDist, isObserved, torchOn);
       const elapsed = now * 0.001;
       entityGroup.scale.y = 1 + Math.sin(elapsed * 2.4) * 0.024;
-      eyeGlow.intensity = 0.55 + Math.sin(elapsed * 8) * 0.35;
+      eyeGlow.intensity = encounter.presence * (0.55 + Math.sin(elapsed * 8) * 0.35);
       mourner.position.y = baseMourner.y + Math.sin(elapsed * 0.9) * 0.12;
       mourner.lookAt(camera.position.x, mourner.position.y, camera.position.z);
       mourner.visible = encounter.mournerVisible && !(torchOn && Math.sin(elapsed * 5.3) > -0.25);
-      if ((currentDist < 5 || Math.random() < 0.001) && now - lastThreatAudio > 8500) {
+      if ((encounter.cue === 'whisper' || encounter.cue === 'laugh') && now - lastThreatAudio > 4500) {
         soundEngine.whisper();
         lastThreatAudio = now;
       }
 
-      if (isObserved && torchOn) {
+      if (isObserved && torchOn && encounter.phase === 'hunting') {
         entityGroup.position.x += (Math.random() - 0.5) * 0.01;
       } else {
         const speed = encounter.speed;
