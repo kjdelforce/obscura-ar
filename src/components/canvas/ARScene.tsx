@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { soundEngine } from '@/lib/audio/SoundManager';
+import { EncounterDirector } from '@/lib/game/EncounterDirector';
 import { computeOrientationQuaternion } from '@/lib/math/sensorToQuaternion';
 import { SigilUVShader } from '@/shaders/materials/SigilUVMaterial';
 
@@ -225,6 +226,7 @@ export function ARScene({
     let lastThreatAudio = 0;
     let lastHudUpdate = 0;
     const baseMourner = mourner.position.clone();
+    const director = new EncounterDirector();
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
@@ -257,12 +259,13 @@ export function ARScene({
       soundEngine.updateEntityPosition(entityGroup.position.x, entityGroup.position.y, entityGroup.position.z);
       soundEngine.setEMFIntensity(currentDist);
 
+      const encounter = director.update(delta, currentDist, isObserved, torchOn);
       const elapsed = now * 0.001;
       entityGroup.scale.y = 1 + Math.sin(elapsed * 2.4) * 0.024;
       eyeGlow.intensity = 0.55 + Math.sin(elapsed * 8) * 0.35;
       mourner.position.y = baseMourner.y + Math.sin(elapsed * 0.9) * 0.12;
       mourner.lookAt(camera.position.x, mourner.position.y, camera.position.z);
-      mourner.visible = !(torchOn && Math.sin(elapsed * 5.3) > -0.25);
+      mourner.visible = encounter.mournerVisible && !(torchOn && Math.sin(elapsed * 5.3) > -0.25);
       if ((currentDist < 5 || Math.random() < 0.001) && now - lastThreatAudio > 8500) {
         soundEngine.whisper();
         lastThreatAudio = now;
@@ -271,12 +274,12 @@ export function ARScene({
       if (isObserved && torchOn) {
         entityGroup.position.x += (Math.random() - 0.5) * 0.01;
       } else {
-        const speed = torchOn ? 0.35 : 1.75;
+        const speed = encounter.speed;
         entityGroup.position.addScaledVector(toEntity, speed * delta);
         entityGroup.lookAt(camera.position.x, entityGroup.position.y, camera.position.z);
       }
 
-      if (currentDist < 1.15) {
+      if (encounter.teleport) {
         onJumpscare();
         soundEngine.triggerJumpscare();
         const angle = Math.random() * Math.PI * 2;
