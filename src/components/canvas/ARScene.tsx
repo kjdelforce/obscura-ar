@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { soundEngine } from '@/lib/audio/SoundManager';
 import { EncounterDirector } from '@/lib/game/EncounterDirector';
+import { loadCreature, type CreatureAsset, type CreatureMotion } from '@/lib/game/loadCreature';
 import { computeOrientationQuaternion } from '@/lib/math/sensorToQuaternion';
 import { SigilUVShader } from '@/shaders/materials/SigilUVMaterial';
 
@@ -129,6 +130,35 @@ export function ARScene({
     }
     mourner.position.set(-3.5, -0.1, -6.8);
     scene.add(mourner);
+
+    // Optional hero GLBs. If files are absent or invalid, keep the working
+    // procedural creatures so the live AR game remains playable.
+    let disposed = false;
+    const creatureAssets: CreatureAsset[] = [];
+    const attach = async (url: string, parent: THREE.Group, fallback: THREE.Group) => {
+      try {
+        const asset = await loadCreature(url);
+        if (disposed) { asset.dispose(); return null; }
+        asset.root.scale.setScalar(1);
+        parent.add(asset.root);
+        fallback.visible = false;
+        creatureAssets.push(asset);
+        return asset;
+      } catch (error) {
+        console.info('Creature model unavailable, using fallback:', url, error);
+        return null;
+      }
+    };
+    const watcherFallback = new THREE.Group();
+    while (entityGroup.children.length) watcherFallback.add(entityGroup.children[0]);
+    entityGroup.add(watcherFallback);
+    const mournerFallback = new THREE.Group();
+    while (mourner.children.length) mournerFallback.add(mourner.children[0]);
+    mourner.add(mournerFallback);
+    let watcherAsset: CreatureAsset | null = null;
+    let mournerAsset: CreatureAsset | null = null;
+    void attach('/assets/creatures/watcher/watcher.glb', entityGroup, watcherFallback).then((asset) => { watcherAsset = asset; });
+    void attach('/assets/creatures/mourner/mourner.glb', mourner, mournerFallback).then((asset) => { mournerAsset = asset; });
 
     // 4. Demonic Sigil
     const sigilCanvas = document.createElement('canvas');
@@ -260,6 +290,13 @@ export function ARScene({
       soundEngine.setEMFIntensity(currentDist);
 
       const encounter = director.update(delta, currentDist, isObserved, torchOn);
+      const motion: CreatureMotion =
+        encounter.phase === 'hunting' ? 'Chase' :
+        encounter.phase === 'manifesting' ? 'Manifest' :
+        encounter.phase === 'stalking' ? 'Walk' : 'Idle';
+      watcherAsset?.play(encounter.teleport ? 'Attack' : motion);
+      mournerAsset?.play(encounter.mournerVisible ? 'Manifest' : 'Idle');
+      creatureAssets.forEach((asset) => asset.update(delta));
       const elapsed = now * 0.001;
       entityGroup.scale.y = 1 + Math.sin(elapsed * 2.4) * 0.024;
       eyeGlow.intensity = encounter.presence * (0.55 + Math.sin(elapsed * 8) * 0.35);
@@ -324,7 +361,9 @@ export function ARScene({
     window.addEventListener('resize', handleResize);
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(animId);
+      creatureAssets.forEach((asset) => asset.dispose());
       window.removeEventListener('deviceorientation', handleOrientation, true);
       window.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mouseup', onMouseUp);
@@ -333,6 +372,7 @@ export function ARScene({
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('resize', handleResize);
       scene.traverse((object) => {
+        if (creatureAssets.some((asset) => asset.root === object || asset.root.getObjectById(object.id))) return;
         if (object instanceof THREE.Mesh) {
           object.geometry.dispose();
           const materials = Array.isArray(object.material) ? object.material : [object.material];
