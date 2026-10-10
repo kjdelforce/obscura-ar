@@ -201,7 +201,7 @@ export function ARScene({
         entityGroup.position.x += (Math.random() - 0.5) * 0.01;
       } else {
         const speed = torchOn ? 0.35 : 1.75;
-        entityGroup.position.addScaledVector(toEntity, -speed * delta);
+        entityGroup.position.addScaledVector(toEntity, speed * delta);
         entityGroup.lookAt(camera.position.x, entityGroup.position.y, camera.position.z);
       }
 
