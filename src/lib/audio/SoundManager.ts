@@ -8,6 +8,8 @@ export class SoundManager {
   private panner: PannerNode | null = null;
   private lastWhisper = 0;
   private muted = false;
+  private lastSpoken = 0;
+  private readonly phrases = ['I can see you.', 'Do not turn around.', 'You let us in.', 'Your light will die.', 'We are right behind you.', 'Stay with us.'];
   private timer: number | null = null;
 
   public async init(): Promise<void> {
@@ -84,6 +86,7 @@ export class SoundManager {
 
   public setMuted(value: boolean) {
     this.muted = value;
+    if (value && typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
     if (this.master && this.ctx) this.master.gain.setTargetAtTime(value ? 0 : 0.42, this.ctx.currentTime, 0.07);
   }
 
@@ -106,6 +109,16 @@ export class SoundManager {
     const ctx = this.ctx;
     if (!ctx || this.muted || ctx.currentTime - this.lastWhisper < 4) return;
     this.lastWhisper = ctx.currentTime;
+    if (ctx.currentTime - this.lastSpoken > 22 && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      this.lastSpoken = ctx.currentTime;
+      const phrase = this.phrases[Math.floor(Math.random() * this.phrases.length)];
+      const speech = new SpeechSynthesisUtterance(phrase);
+      speech.lang = 'en-AU';
+      speech.rate = 0.62;
+      speech.pitch = 0.25;
+      speech.volume = 0.36;
+      window.speechSynthesis.speak(speech);
+    }
     const start = ctx.currentTime + 0.03;
     const length = 1.8 + Math.random() * 1.7;
     const base = 68 + Math.random() * 49;
