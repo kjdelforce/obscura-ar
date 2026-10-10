@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useCameraTorch } from '@/hooks/useCameraTorch';
 import { CameraFeed } from '@/components/canvas/CameraFeed';
 import { ARScene } from '@/components/canvas/ARScene';
@@ -13,6 +13,7 @@ import { soundEngine } from '@/lib/audio/SoundManager';
 export default function GameContainer() {
   const {
     hasTorch,
+    error,
     isTorchOn,
     batteryLevel,
     videoRef,
@@ -36,32 +37,36 @@ export default function GameContainer() {
     }
 
     await soundEngine.init();
-    await startCamera();
-    setHasStarted(true);
+    const cameraReady = await startCamera();
+    if (cameraReady) setHasStarted(true);
   };
 
-  const handleJumpscare = () => {
+  const handleJumpscare = useCallback(() => {
     setJumpscareActive(true);
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       navigator.vibrate([100, 50, 400]);
     }
     setTimeout(() => setJumpscareActive(false), 900);
-  };
+  }, []);
 
-  const handleExorcism = () => {
+  const handleExorcism = useCallback(() => {
     setSigilExorcised(true);
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       navigator.vibrate([200, 100, 200]);
     }
-  };
+  }, []);
 
   if (!hasStarted) {
-    return <PermissionModal onStart={handleStartGame} />;
+    return <>
+      <PermissionModal onStart={handleStartGame} />
+      {error && <div role="alert" className="fixed bottom-6 inset-x-6 z-50 border border-red-500 bg-black/95 p-4 text-sm text-red-300 font-mono">{error}</div>}
+    </>;
   }
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden select-none">
       <CameraFeed videoRef={videoRef} />
+      {error && <div role="alert" className="absolute z-50 top-1/3 inset-x-6 border border-red-500 bg-black/95 p-4 text-red-300 font-mono text-sm">{error}</div>}
 
       <div className="absolute inset-0 z-10 pointer-events-none">
         <ARScene
