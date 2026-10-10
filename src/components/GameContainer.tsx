@@ -22,6 +22,7 @@ export default function GameContainer() {
   } = useCameraTorch();
 
   const [hasStarted, setHasStarted] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [jumpscareActive, setJumpscareActive] = useState(false);
   const [entityDistance, setEntityDistance] = useState(8);
   const [sigilProgress, setSigilProgress] = useState(0);
@@ -66,6 +67,9 @@ export default function GameContainer() {
   return (
     <div className="fixed inset-0 bg-black overflow-hidden select-none">
       <CameraFeed videoRef={videoRef} />
+      <div className="absolute top-28 right-5 z-40 pointer-events-auto">
+        <button aria-label={soundEnabled ? 'Mute horror audio' : 'Enable horror audio'} onClick={() => { const next = !soundEnabled; setSoundEnabled(next); soundEngine.setMuted(!next); }} className="px-3 py-2 border border-red-900/70 bg-black/75 text-red-300 font-mono text-[10px] tracking-widest">{soundEnabled ? 'SOUND ON' : 'SOUND OFF'}</button>
+      </div>
       {error && <div role="alert" className="absolute z-50 top-1/3 inset-x-6 border border-red-500 bg-black/95 p-4 text-red-300 font-mono text-sm">{error}</div>}
 
       <div className="absolute inset-0 z-10 pointer-events-none">
@@ -84,7 +88,7 @@ export default function GameContainer() {
       <div className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-6 font-mono text-xs">
         <div className="flex justify-between items-start text-neutral-400">
           <div>
-            <p className="font-bold text-red-500 tracking-wider">OBSCURA v0.9</p>
+            <p className="font-bold text-red-500 tracking-wider">OBSCURA v1.0 // HAUNTED</p>
             <p className="text-[10px]">FEED: 1080P // SENSOR_LOCK</p>
             <div className="mt-2 w-32">
               <EMFMeter distance={entityDistance} />
